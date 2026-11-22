@@ -165,6 +165,15 @@
   const pubUrl = (path, download) =>
     sb.storage.from(BUCKET).getPublicUrl(path, download ? { download } : undefined).data.publicUrl;
 
+  // نفس تطبيع قاعدة البيانات (norm_ar في schema.sql): أحمد = احمد، سياسة = سياسه، التشكيل يتجاهل
+  const normAr = (s) => s.toLowerCase()
+    .replace(/[ً-ٰٟـ]/g, '')
+    .replace(/[أإآٱ]/g, 'ا')
+    .replace(/ى/g, 'ي')
+    .replace(/ة/g, 'ه')
+    .replace(/ؤ/g, 'و')
+    .replace(/ئ/g, 'ي');
+
   const extOf = (path) => (path.split('.').pop() || 'jpg').toLowerCase();
 
   function friendlyAuthError(e) {
@@ -438,7 +447,7 @@
     else if (S.view === 'review') q = q.eq('status', 'pending');
 
     if (S.query) {
-      S.query.split(/\s+/).filter(Boolean).forEach((w) => {
+      normAr(S.query).split(/\s+/).filter(Boolean).forEach((w) => {
         const safe = w.replace(/[%_\\]/g, '');
         if (safe) q = q.ilike('search_text', '%' + safe + '%');
       });
