@@ -260,8 +260,8 @@ main { padding: 18px clamp(14px, 3vw, 32px) 80px; }
   .topbar { flex-wrap: wrap; gap: 10px; }
   .search { order: 3; flex-basis: 100%; max-width: none; }
   .actions { margin-inline-start: auto; }
-  .btn.primary span { display: none; }
-  .btn.primary { width: 42px; padding: 0; }
+  #btn-upload span { display: none; }
+  #btn-upload { width: 42px; padding: 0; }
   .grid { column-width: 150px; column-gap: 10px; }
   .card { margin-bottom: 10px; border-radius: 12px; }
   .up-grid { grid-template-columns: 1fr; }
