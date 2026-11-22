@@ -515,7 +515,7 @@
     lsSet(RECENT_KEY, JSON.stringify([id, ...getRecent().filter((x) => x !== id)].slice(0, 40)));
   }
 
-  const COLS = 'id,title,description,tags,path,view_path,thumb_path,width,height,status,user_id,created_at,profiles(username)';
+  const COLS = 'id,title,description,tags,path,view_path,thumb_path,width,height,status,user_id,created_at,profiles!user_id(username)';
 
   async function loadPhotos(reset) {
     if (reset) {
@@ -603,7 +603,7 @@
     if (error && socialFail(error)) return;
     if (error) {
       console.error(error);
-      toast(t('loadErr'), 'err');
+      toast(t('loadErr') + ' (' + String(error.message || '').slice(0, 90) + ')', 'err');
       S.done = true;
       return;
     }
@@ -1114,7 +1114,7 @@
   /* ------------------------------------------------------------------ */
   let cTok = 0;
   const cTitle = (p) => t('comments') + (p.comment_count > 0 ? ' (' + p.comment_count + ')' : '');
-  const C_COLS = 'id,body,created_at,user_id,profiles(username)';
+  const C_COLS = 'id,body,created_at,user_id,profiles!user_id(username)';
 
   function renderSocial(p) {
     const soc = $('#v-social');
