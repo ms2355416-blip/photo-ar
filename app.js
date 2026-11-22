@@ -53,7 +53,9 @@
       badImage: 'مش قادر أقرأ الصورة دي',
       confirmDel: 'متأكد إنك عايز تحذف الصورة نهائيًا؟',
       deleted: 'تم الحذف', approved: 'تم قبول الصورة ✓', rejected: 'تم رفض الصورة وحذفها',
-      checkEmail: 'بعتنالك رسالة تأكيد على إيميلك. افتحها وبعدين سجّل دخول.',
+      checkEmail: 'بعتنالك رسالة تأكيد على إيميلك. افتحها واضغط على الرابط، وبعدين اكتب كلمة السر هنا وسجّل دخول.',
+      confirmed: 'تم تأكيد حسابك وتسجيل دخولك ✓',
+      linkErr: 'رابط التأكيد منتهي أو اتفتح قبل كده. سجّل دخول بإيميلك وكلمة السر، ولو مش شغال جرّب إنشاء الحساب تاني.',
       fillAll: 'املأ الإيميل وكلمة السر',
       loadErr: 'حصلت مشكلة في تحميل الصور. اتأكد إنك شغّلت ملف schema.sql في Supabase.',
       err: 'حصل خطأ، حاول تاني',
@@ -99,7 +101,9 @@
       badImage: "Couldn't read this image",
       confirmDel: 'Delete this photo permanently?',
       deleted: 'Deleted', approved: 'Photo approved ✓', rejected: 'Photo rejected and deleted',
-      checkEmail: 'We sent a confirmation email. Open it, then log in.',
+      checkEmail: 'We sent a confirmation email. Open it and click the link, then enter your password here and log in.',
+      confirmed: 'Your account is confirmed and you are logged in ✓',
+      linkErr: 'The confirmation link has expired or was already used. Log in with your email and password.',
       fillAll: 'Enter your email and password',
       loadErr: 'Could not load photos. Make sure you ran schema.sql in Supabase.',
       err: 'Something went wrong, try again',
@@ -117,6 +121,11 @@
 
   let lang = lsGet('pa_lang') === 'en' ? 'en' : 'ar';
   const t = (k) => (I18N[lang] && I18N[lang][k]) || k;
+
+  // الرابط اللي بيجي من إيميل التأكيد بيحمل بيانات في الـ hash أو الـ query
+  const LINK_PARAMS = new URLSearchParams(location.hash.replace(/^#/, '') + '&' + location.search.replace(/^\?/, ''));
+  let FROM_EMAIL_LINK = LINK_PARAMS.has('access_token') || LINK_PARAMS.has('code') || /^(signup|magiclink|invite|recovery|email)$/.test(LINK_PARAMS.get('type') || '');
+  const LINK_ERROR = LINK_PARAMS.has('error') || LINK_PARAMS.has('error_code');
 
   /* ------------------------------------------------------------------ */
   /* الحالة                                                              */
@@ -307,7 +316,13 @@
         });
         if (error) throw error;
         if (data.session) closeModal($('#auth-modal'));
-        else setMsg($('#auth-msg'), t('checkEmail'), true);
+        else {
+          // بعد التأكيد من الإيميل يرجع يسجل دخول بنفس البيانات
+          authMode = 'login';
+          renderAuthModalText();
+          $('#a-pass').value = '';
+          setMsg($('#auth-msg'), t('checkEmail'), true);
+        }
       }
     } catch (err) {
       setMsg($('#auth-msg'), friendlyAuthError(err));
@@ -336,6 +351,12 @@
       S.ready = true;
       S.uid = uid;
       applySession(session);
+      if (session) {
+        // لو التأكيد تم في تبويب تاني في نفس المتصفح، الجلسة بتوصل هنا تلقائيًا
+        const am = $('#auth-modal');
+        if (!am.hidden) closeModal(am);
+        if (FROM_EMAIL_LINK) { FROM_EMAIL_LINK = false; toast(t('confirmed'), 'ok'); }
+      }
       if (changed) {
         loadPhotos(true);
         refreshPendingCount();
@@ -815,5 +836,6 @@
   /* البداية                                                             */
   /* ------------------------------------------------------------------ */
   applyLang();
+  if (LINK_ERROR) setTimeout(() => toast(t('linkErr'), 'err'), 400);
   // أول تحميل بيحصل من onAuthStateChange (INITIAL_SESSION)
 })();
