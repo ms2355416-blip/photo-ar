@@ -41,7 +41,9 @@
 
 <nav class="tabs" id="tabs" aria-label="Sections">
   <button class="tab active" data-view="home" type="button" data-i18n="home"></button>
+  <button class="tab" data-view="recent" type="button" data-i18n="recent"></button>
   <button class="tab" data-view="mine" type="button" hidden data-i18n="mine"></button>
+  <button class="tab" data-view="collections" type="button" hidden data-i18n="collections"></button>
   <button class="tab" data-view="review" type="button" hidden><span data-i18n="review"></span><i id="pending-count" class="count" hidden></i></button>
 </nav>
 
@@ -56,7 +58,7 @@
 <!-- ============ تسجيل الدخول ============ -->
 <div class="modal" id="auth-modal" hidden>
   <div class="sheet auth-sheet" role="dialog" aria-modal="true" aria-labelledby="auth-title">
-    <button class="x" type="button" data-close aria-label="Close">×</button>
+    <button class="x" type="button" data-close aria-label="Close"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     <h2 id="auth-title"></h2>
     <p class="sub" id="auth-sub"></p>
 
@@ -89,7 +91,7 @@
 <!-- ============ رفع صورة ============ -->
 <div class="modal" id="upload-modal" hidden>
   <div class="sheet upload-sheet" role="dialog" aria-modal="true" aria-labelledby="up-title">
-    <button class="x" type="button" data-close aria-label="Close">×</button>
+    <button class="x" type="button" data-close aria-label="Close"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     <h2 id="up-title" data-i18n="uploadTitle"></h2>
 
     <div class="up-grid">
@@ -117,6 +119,7 @@
           </div>
           <small class="hint" data-i18n="tagsHint"></small>
         </div>
+        <div class="progress" id="up-prog" hidden><i></i></div>
         <p class="msg" id="up-msg" role="alert" hidden></p>
         <button class="btn primary wide" id="up-submit" type="button" data-i18n="publish"></button>
         <small class="hint center" id="up-note"></small>
@@ -128,21 +131,51 @@
 <!-- ============ عرض صورة ============ -->
 <div class="modal viewer" id="viewer" hidden>
   <div class="v-wrap" role="dialog" aria-modal="true" aria-labelledby="v-title">
-    <button class="x" type="button" data-close aria-label="Close">×</button>
-    <div class="v-media"><img id="v-img" alt=""></div>
+    <button class="x" type="button" data-close aria-label="Close"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <div class="v-media">
+      <img id="v-img" alt="">
+      <button class="v-nav prev" id="v-prev" type="button"></button>
+      <button class="v-nav next" id="v-next" type="button"></button>
+    </div>
     <aside class="v-side">
       <h2 id="v-title"></h2>
       <p class="v-by" id="v-by"></p>
       <div class="chips ro" id="v-tags"></div>
+      <div class="v-social" id="v-social" hidden></div>
+      <section class="v-comments" id="v-comments" hidden></section>
       <div class="v-actions" id="v-actions"></div>
     </aside>
   </div>
 </div>
 
+<div class="modal" id="save-modal" hidden>
+  <div class="sheet small-sheet" role="dialog" aria-modal="true" aria-labelledby="save-title">
+    <button class="x" type="button" data-close aria-label="Close"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <h2 id="save-title" data-i18n="saveTitle"></h2>
+    <div class="save-list" id="save-list"></div>
+    <button class="btn ghost wide" id="save-new" type="button"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span data-i18n="newColl"></span></button>
+  </div>
+</div>
+
+<div class="modal" id="coll-modal" hidden>
+  <div class="sheet small-sheet" role="dialog" aria-modal="true" aria-labelledby="coll-title">
+    <button class="x" type="button" data-close aria-label="Close"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <h2 id="coll-title" data-i18n="newColl"></h2>
+    <form id="coll-form" novalidate style="margin-top:16px">
+      <label class="field"><span data-i18n="collName"></span><input id="coll-name" type="text" maxlength="60" data-i18n-ph="collPh"></label>
+      <label class="check"><input id="coll-public" type="checkbox" checked><span data-i18n="collPublic"></span></label>
+      <p class="msg" id="coll-msg" role="alert" hidden></p>
+      <button class="btn primary wide" id="coll-submit" type="submit" data-i18n="create"></button>
+    </form>
+  </div>
+</div>
+
+<button id="to-top" class="to-top" type="button" hidden></button>
 <div id="toasts" class="toasts" aria-live="polite"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
+<script src="icons.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
