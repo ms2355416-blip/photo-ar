@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>استيراد صور — Photo Ar</title>
+    <meta
+      name="description"
+      content="Photo Ar — رفع مجموعة صور دفعة واحدة. استيراد صور CC0 مختارة للمراجعة."
+    />
+    <meta name="theme-color" content="#121110" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23ff7a1a'/%3E%3Cpath d='M9 12.5h2.6l1.2-2h6.4l1.2 2H23a1 1 0 0 1 1 1V22a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-8.5a1 1 0 0 1 1-1Z' fill='%23121110'/%3E%3Ccircle cx='16' cy='17.5' r='3.6' fill='%23ff7a1a'/%3E%3C/svg%3E"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Sora:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      /* تنسيقات خاصة بصفحة الرفع الجماعي فقط */
+      .bulk-wrap {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 18px 16px 60px;
+      }
+      .bulk-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .bulk-head h1 {
+        font-size: 1.35rem;
+      }
+      .bulk-head .back {
+        color: var(--muted);
+        text-decoration: none;
+        font-size: 0.92rem;
+      }
+      .bulk-head .back:hover {
+        color: var(--text);
+      }
+      .bulk-note {
+        color: var(--muted);
+        font-size: 0.9rem;
+        margin-bottom: 14px;
+      }
+      .bulk-items {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 12px;
+        margin: 16px 0;
+      }
+      .bi {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .bi.err {
+        border-color: var(--danger);
+      }
+      .bi.done {
+        border-color: var(--ok);
+      }
+      .bi-thumb {
+        position: relative;
+        aspect-ratio: 1;
+        background: var(--surface-2);
+      }
+      .bi-thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      .bi-x {
+        position: absolute;
+        top: 6px;
+        inset-inline-end: 6px;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.6);
+        color: #fff;
+        display: grid;
+        place-items: center;
+      }
+      .bi-x:hover {
+        background: rgba(0, 0, 0, 0.85);
+      }
+      .bi-state {
+        position: absolute;
+        bottom: 6px;
+        inset-inline-start: 6px;
+        font-size: 0.72rem;
+        padding: 3px 8px;
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.65);
+        color: #fff;
+      }
+      .bi-state.ok {
+        background: rgba(62, 207, 142, 0.9);
+        color: #0c2a1c;
+      }
+      .bi-state.err {
+        background: rgba(255, 90, 79, 0.92);
+        color: #fff;
+      }
+      .bi-body {
+        padding: 8px 10px 10px;
+        display: grid;
+        gap: 6px;
+      }
+      .bi-name {
+        font-size: 0.75rem;
+        color: var(--muted);
+        direction: ltr;
+        text-align: start;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .bi-title {
+        width: 100%;
+        background: var(--surface-2);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 6px 8px;
+        font: inherit;
+        font-size: 0.82rem;
+        color: var(--text);
+      }
+      .bi-title:focus {
+        outline: none;
+        border-color: var(--accent);
+      }
+      .bi-prog {
+        height: 4px;
+        border-radius: 4px;
+        background: var(--surface-2);
+        overflow: hidden;
+      }
+      .bi-prog i {
+        display: block;
+        height: 100%;
+        width: 0;
+        background: var(--accent);
+        transition: width 0.2s;
+      }
+      .bulk-bar {
+        position: sticky;
+        bottom: 12px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 12px 14px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .bulk-bar .count {
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+      .bulk-bar .btn {
+        flex: 1;
+        min-width: 160px;
+      }
+      .bulk-prog {
+        flex-basis: 100%;
+        height: 6px;
+        border-radius: 6px;
+        background: var(--surface-2);
+        overflow: hidden;
+      }
+      .bulk-prog i {
+        display: block;
+        height: 100%;
+        width: 0;
+        background: var(--accent);
+        transition: width 0.25s;
+      }
+      .center-card {
+        max-width: 420px;
+        margin: 60px auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="bulk-wrap">
+      <div class="bulk-head">
+        <h1 id="page-title"></h1>
+        <a class="back" href="./" id="back-link"></a>
+      </div>
+
+      <!-- جاري فحص الجلسة -->
+      <p id="st-loading" class="bulk-note"></p>
+
+      <!-- تسجيل الدخول -->
+      <div id="st-login" class="sheet auth-sheet center-card" hidden>
+        <h2 id="login-title"></h2>
+        <p class="sub" id="login-sub"></p>
+        <button id="btn-google" class="btn google" type="button">
+          <svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true">
+            <path
+              fill="#EA4335"
+              d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"
+            />
+            <path
+              fill="#4285F4"
+              d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17.5z"
+            />
+            <path
+              fill="#FBBC05"
+              d="M10.5 28.7a14.5 14.5 0 0 1 0-9.4l-7.9-6.1a24 24 0 0 0 0 21.6l7.9-6.1z"
+            />
+            <path
+              fill="#34A853"
+              d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.9 2.3-8.4 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"
+            />
+          </svg>
+          <span id="google-label"></span>
+        </button>
+        <div class="or"><span id="or-label"></span></div>
+        <form id="login-form" novalidate>
+          <label class="field"
+            ><span id="email-label"></span
+            ><input
+              id="a-email"
+              type="email"
+              required
+              autocomplete="email"
+              dir="ltr"
+          /></label>
+          <label class="field"
+            ><span id="pass-label"></span
+            ><input
+              id="a-pass"
+              type="password"
+              required
+              minlength="6"
+              autocomplete="current-password"
+              dir="ltr"
+          /></label>
+          <p class="msg" id="login-msg" role="alert" hidden></p>
+          <button
+            class="btn primary wide"
+            id="login-submit"
+            type="submit"
+          ></button>
+        </form>
+      </div>
+
+      <!-- حساب غير مصرح -->
+      <div id="st-denied" class="sheet auth-sheet center-card" hidden>
+        <h2 id="denied-title"></h2>
+        <p class="sub" id="denied-sub"></p>
+        <button class="btn ghost wide" id="btn-logout" type="button"></button>
+      </div>
+
+      <section id="st-bulk" hidden>
+        <h2>استيراد صور CC0 للمراجعة</h2>
+        <p class="bulk-note">
+          ابحث في Wikimedia Commons. اختار لحد ٥ صور في المرة، وكل صورة تدخل
+          المراجعة لوحدها. مفيش تحميل تلقائي للمكتبة كلها.
+        </p>
+        <p class="bulk-note">
+          الترخيص هنا حسب بيانات المصدر، مش ضمان للحقوق. افتح صفحة كل صورة
+          واتأكد من CC0 وحقوق الأشخاص والعلامات قبل اختيارها.
+        </p>
+        <form id="search-form">
+          <label class="field"
+            ><span>كلمة البحث (الإنجليزي غالبًا نتائجه أكتر)</span
+            ><input
+              id="query"
+              maxlength="80"
+              required
+              placeholder="nature" /></label
+          ><button class="btn primary" id="search-btn">بحث</button>
+        </form>
+        <p id="search-msg" role="status"></p>
+        <div class="bulk-items" id="results"></div>
+        <button class="btn ghost" id="next" type="button" hidden>
+          النتائج التالية
+        </button>
+        <label class="field"
+          ><span
+            ><input type="checkbox" id="rights" /> راجعت صفحات الصور المختارة
+            وحقوق استخدامها وموافق على استيرادها للمراجعة.</span
+          ></label
+        >
+        <button class="btn primary" id="import-btn" type="button" disabled>
+          استيراد المختار للمراجعة
+        </button>
+        <p id="import-msg" role="status"></p>
+        <p>
+          <a
+            href="https://commons.wikimedia.org/wiki/Commons:Reusing_content_outside_Wikimedia"
+            target="_blank"
+            rel="noopener noreferrer"
+            >شروط إعادة استخدام صور Commons</a
+          >. الأداة مش تابعة لـWikimedia.
+        </p>
+      </section>
+    </div>
+
+    <div id="toasts" class="toasts" aria-live="polite"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="icons.js"></script>
+    <script src="import.js"></script>
+  </body>
+</html>
