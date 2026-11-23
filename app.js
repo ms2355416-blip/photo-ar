@@ -76,7 +76,10 @@
       collPublicTag: 'عامة', collPrivateTag: 'خاصة', photosN: 'صور', collSaved: 'تم الحفظ في المجموعة', collRemoved: 'اتشالت من المجموعة',
       collDeleted: 'تم حذف المجموعة', confirmDelColl: 'تحذف المجموعة؟ الصور نفسها مش هتتحذف.', collNotFound: 'المجموعة دي مش موجودة أو خاصة',
       back: 'رجوع', comments: 'التعليقات', commentPh: 'اكتب تعليق…', send: 'إرسال', noComments: 'لسه مفيش تعليقات',
-      loginToComment: 'سجّل دخولك عشان تعلّق', delComment: 'حذف التعليق'
+      loginToComment: 'سجّل دخولك عشان تعلّق', delComment: 'حذف التعليق',
+      searchImg: 'بحث بصورة', semNoExact: 'مفيش تطابق حرفي، دي أقرب الصور في المعنى لـ', semImage: 'صور قريبة من الصورة اللي اخترتها',
+      aiIndex: 'فهرسة الصور بالذكاء الاصطناعي', aiAllDone: 'كل الصور متفهرسة', aiStart: 'بدأت الفهرسة، سيب الصفحة مفتوحة. العدد:', aiDone: 'خلصت الفهرسة:',
+      aiErr: 'البحث الذكي مش شغال دلوقتي'
     },
     en: {
       lang: 'عربي',
@@ -136,7 +139,10 @@
       collPublicTag: 'Public', collPrivateTag: 'Private', photosN: 'photos', collSaved: 'Saved to collection', collRemoved: 'Removed from collection',
       collDeleted: 'Collection deleted', confirmDelColl: 'Delete this collection? The photos themselves stay.', collNotFound: 'Collection not found or private',
       back: 'Back', comments: 'Comments', commentPh: 'Write a comment…', send: 'Send', noComments: 'No comments yet',
-      loginToComment: 'Log in to comment', delComment: 'Delete comment'
+      loginToComment: 'Log in to comment', delComment: 'Delete comment',
+      searchImg: 'Search by image', semNoExact: 'No exact match, closest photos in meaning to', semImage: 'Photos similar to your image',
+      aiIndex: 'Index photos with AI', aiAllDone: 'All photos are indexed', aiStart: 'Indexing started, keep this page open. Count:', aiDone: 'Indexing done:',
+      aiErr: 'Smart search is not available right now'
     }
   };
 
@@ -167,6 +173,7 @@
     ready: false, // بيبقى true بعد أول فحص للجلسة
     uid: null,
     liked: new Set(),
+    sem: null,
     coll: null,
     gen: 0 // يلغي الطلبات القديمة لما المستخدم يغير البحث بسرعة
   };
@@ -248,6 +255,9 @@
     $$('[data-i18n]').forEach((n) => { n.textContent = t(n.dataset.i18n); });
     $$('[data-i18n-ph]').forEach((n) => { n.placeholder = t(n.dataset.i18nPh); });
     $('#btn-lang').textContent = t('lang');
+    $('#btn-img-search').innerHTML = PA_ICONS.image || '';
+    $('#btn-img-search').setAttribute('aria-label', t('searchImg'));
+    $('#btn-img-search').title = t('searchImg');
     $('#to-top').innerHTML = PA_ICONS.up || '';
     $('#to-top').setAttribute('aria-label', t('toTop'));
     $('#v-prev').innerHTML = PA_ICONS.chevron || '';
@@ -293,7 +303,14 @@
     const out = el('button', '', t('logout'));
     out.type = 'button';
     out.addEventListener('click', async () => { menu.hidden = true; await sb.auth.signOut(); });
-    menu.append(who, out);
+    menu.append(who);
+    if (S.isAdmin && AI_ON) {
+      const ai = el('button', '', t('aiIndex'));
+      ai.type = 'button';
+      ai.addEventListener('click', () => { menu.hidden = true; backfillAI(); });
+      menu.append(ai);
+    }
+    menu.append(out);
     av.addEventListener('click', (e) => { e.stopPropagation(); menu.hidden = !menu.hidden; });
     box.append(av, menu);
   }
@@ -451,6 +468,17 @@
 
   function renderResultBar() {
     const bar = $('#result-bar');
+    if (S.sem) {
+      bar.replaceChildren();
+      const sp = el('span', '', t(S.sem === 'image' ? 'semImage' : 'semNoExact') + ' ');
+      if (S.sem === 'fallback' && S.query) sp.append(el('b', '', '«' + S.query + '»'));
+      const clr = el('button', '', t('clear'));
+      clr.type = 'button';
+      clr.addEventListener('click', () => { S.sem = null; setQuery('', false); });
+      bar.append(sp, clr);
+      bar.hidden = false;
+      return;
+    }
     if (S.view === 'collections' || S.view === 'collection') {
       bar.replaceChildren();
       if (S.view === 'collections') bar.append(barBtn(PA_ICONS.plus, t('newColl'), () => openCollForm()));
@@ -520,6 +548,7 @@
   async function loadPhotos(reset) {
     if (reset) {
       S.gen++;
+      S.sem = null;
       S.page = 0;
       S.done = false;
       S.items = [];
@@ -605,6 +634,11 @@
       console.error(error);
       toast(t('loadErr') + ' (' + String(error.message || '').slice(0, 90) + ')', 'err');
       S.done = true;
+      return;
+    }
+    // مفيش تطابق حرفي؟ جرّب أقرب الصور في المعنى (لليوزر المسجل بس، عشان حصة Gemini)
+    if (!data.length && S.page === 0 && S.query && S.view === 'home' && S.user && AI_ON) {
+      semSearch({ text: S.query }, 'fallback', true);
       return;
     }
     if (data.length < size) S.done = true;
@@ -1044,6 +1078,7 @@
       const { error } = await sb.from('photos').insert(row);
       if (error) throw error;
       setProg(100);
+      indexPhoto(id);
 
       closeModal($('#upload-modal'));
       toast(t(S.isAdmin ? 'published' : 'sentReview'), 'ok');
@@ -1114,229 +1149,4 @@
   /* ------------------------------------------------------------------ */
   let cTok = 0;
   const cTitle = (p) => t('comments') + (p.comment_count > 0 ? ' (' + p.comment_count + ')' : '');
-  const C_COLS = 'id,body,created_at,user_id,profiles!user_id(username)';
-
-  function renderSocial(p) {
-    const soc = $('#v-social');
-    const box = $('#v-comments');
-    soc.replaceChildren();
-    box.replaceChildren();
-    soc.hidden = box.hidden = !(SOCIAL && p.status === 'approved');
-    if (soc.hidden) return;
-    soc.append(likeBtn(p, 'btn ghost like-btn'));
-    const sv = el('button', 'btn ghost');
-    sv.type = 'button';
-    sv.innerHTML = (PA_ICONS.bookmark || '') + '<span></span>';
-    sv.lastChild.textContent = t('save');
-    sv.addEventListener('click', () => openSave(p));
-    soc.append(sv);
-    loadComments(p, box);
-  }
-
-  async function loadComments(p, box) {
-    const tok = ++cTok;
-    const h = el('h3', '', cTitle(p));
-    const list = el('div', 'c-list');
-    box.append(h, list);
-    if (S.user) box.append(commentForm(p, list, h));
-    else {
-      const l = el('button', 'link', t('loginToComment'));
-      l.type = 'button';
-      l.addEventListener('click', () => openAuth('login'));
-      box.append(l);
-    }
-    const { data, error } = await sb.from('comments').select(C_COLS).eq('photo_id', p.id)
-      .order('created_at', { ascending: true }).limit(100);
-    if (tok !== cTok) return;
-    if (error) { console.error(error); return; }
-    if (!data.length) list.append(el('p', 'hint', t('noComments')));
-    data.forEach((c) => list.append(commentEl(c, p, list, h)));
-  }
-
-  function commentEl(c, p, list, h) {
-    const row = el('div', 'c-item');
-    const head = el('div', 'c-head');
-    head.append(el('b', '', (c.profiles && c.profiles.username) || '—'));
-    if (S.user && (S.user.id === c.user_id || S.isAdmin)) {
-      const d = el('button', 'c-del');
-      d.type = 'button';
-      d.innerHTML = PA_ICONS.trash || '';
-      d.title = t('delComment');
-      d.setAttribute('aria-label', t('delComment'));
-      d.addEventListener('click', async () => {
-        const { error } = await sb.from('comments').delete().eq('id', c.id);
-        if (error) return toast(t('err'), 'err');
-        row.remove();
-        p.comment_count = Math.max(0, (p.comment_count || 0) - 1);
-        h.textContent = cTitle(p);
-        if (!list.children.length) list.append(el('p', 'hint', t('noComments')));
-      });
-      head.append(d);
-    }
-    row.append(head, el('p', 'c-body', c.body));
-    return row;
-  }
-
-  function commentForm(p, list, h) {
-    const f = el('form', 'c-form');
-    f.noValidate = true;
-    const inp = el('input');
-    inp.type = 'text'; inp.maxLength = 500; inp.autocomplete = 'off'; inp.dir = 'auto';
-    inp.placeholder = t('commentPh');
-    const b = el('button', 'btn primary');
-    b.type = 'submit';
-    b.innerHTML = PA_ICONS.send || '';
-    b.setAttribute('aria-label', t('send'));
-    f.append(inp, b);
-    f.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const body = inp.value.trim();
-      if (!body || b.disabled) return;
-      b.disabled = true;
-      const { data, error } = await sb.from('comments')
-        .insert({ photo_id: p.id, user_id: S.user.id, body }).select(C_COLS).single();
-      setTimeout(() => { b.disabled = false; }, 3000);
-      if (error) { console.error(error); return toast(t('err'), 'err'); }
-      inp.value = '';
-      const empty = list.querySelector('.hint');
-      if (empty) empty.remove();
-      list.append(commentEl(data, p, list, h));
-      p.comment_count = (p.comment_count || 0) + 1;
-      h.textContent = cTitle(p);
-    });
-    return f;
-  }
-
-  /* ------------------------------------------------------------------ */
-  /* المجموعات                                                           */
-  /* ------------------------------------------------------------------ */
-  const SV = { p: null };
-  let collDone = null;
-
-  const barBtn = (icon, text, fn, cls) => {
-    const b = el('button', 'bar-btn' + (cls ? ' ' + cls : ''));
-    b.type = 'button';
-    b.innerHTML = (icon || '') + '<span></span>';
-    b.lastChild.textContent = text;
-    b.addEventListener('click', fn);
-    return b;
-  };
-
-  function collTile(c) {
-    const n = (c.collection_photos && c.collection_photos[0] && c.collection_photos[0].count) || 0;
-    const d = el('button', 'coll');
-    d.type = 'button';
-    d.innerHTML = (c.is_public ? PA_ICONS.globe : PA_ICONS.lock) + '<b></b><small></small>';
-    d.querySelector('b').textContent = c.name;
-    d.querySelector('small').textContent = n + ' ' + t('photosN') + ' · ' + t(c.is_public ? 'collPublicTag' : 'collPrivateTag');
-    d.addEventListener('click', () => openCollection(c.id, c));
-    return d;
-  }
-
-  async function openCollection(id, known) {
-    let c = known;
-    if (!c) {
-      const r = await sb.from('collections').select('id,name,is_public,user_id').eq('id', id).maybeSingle();
-      if (r.error || !r.data) return toast(t('collNotFound'), 'err');
-      c = r.data;
-    }
-    S.coll = c;
-    S.view = 'collection';
-    $$('.tab').forEach((x) => x.classList.toggle('active', x.dataset.view === 'collections'));
-    loadPhotos(true);
-  }
-
-  function openCollForm(done) {
-    collDone = done || null;
-    $('#coll-name').value = '';
-    $('#coll-public').checked = true;
-    setMsg($('#coll-msg'), '');
-    openModal('#coll-modal');
-    setTimeout(() => $('#coll-name').focus(), 50);
-  }
-
-  $('#coll-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const name = $('#coll-name').value.trim().slice(0, 60);
-    if (!name || !S.user) return;
-    const btn = $('#coll-submit');
-    btn.disabled = true;
-    const { data, error } = await sb.from('collections')
-      .insert({ user_id: S.user.id, name, is_public: $('#coll-public').checked })
-      .select('id,name,is_public,user_id').single();
-    btn.disabled = false;
-    if (error) { console.error(error); return setMsg($('#coll-msg'), t('err')); }
-    closeModal($('#coll-modal'));
-    if (collDone) collDone(data);
-    else if (S.view === 'collections') loadPhotos(true);
-  });
-
-  async function openSave(p) {
-    if (!S.user) { toast(t('needLogin'), 'err'); return openAuth('login'); }
-    SV.p = p;
-    openModal('#save-modal');
-    renderSaveList();
-  }
-
-  $('#save-new').addEventListener('click', () => openCollForm(async (col) => {
-    if (SV.p) await sb.from('collection_photos').insert({ collection_id: col.id, photo_id: SV.p.id });
-    renderSaveList();
-  }));
-
-  async function renderSaveList() {
-    const box = $('#save-list');
-    const [c, m] = await Promise.all([
-      sb.from('collections').select('id,name,is_public').eq('user_id', S.user.id).order('created_at', { ascending: false }),
-      sb.from('collection_photos').select('collection_id').eq('photo_id', SV.p.id)
-    ]);
-    box.replaceChildren();
-    if (c.error) { console.error(c.error); return toast(t('err'), 'err'); }
-    const has = new Set((m.data || []).map((r) => r.collection_id));
-    c.data.forEach((col) => {
-      const b = el('button', 'save-row');
-      b.type = 'button';
-      b.innerHTML = (col.is_public ? PA_ICONS.globe : PA_ICONS.lock) + '<span></span><i class="tick"></i>';
-      b.querySelector('span').textContent = col.name;
-      b.querySelector('.tick').innerHTML = PA_ICONS.check || '';
-      const paint = () => b.classList.toggle('on', has.has(col.id));
-      paint();
-      b.addEventListener('click', () => toggleInColl(col, has, paint));
-      box.append(b);
-    });
-    if (!c.data.length) box.append(el('p', 'hint center', t('emptyColl')));
-  }
-
-  async function toggleInColl(col, has, paint) {
-    const pid = SV.p.id;
-    const on = has.has(col.id);
-    const { error } = on
-      ? await sb.from('collection_photos').delete().eq('collection_id', col.id).eq('photo_id', pid)
-      : await sb.from('collection_photos').insert({ collection_id: col.id, photo_id: pid });
-    if (error) { console.error(error); return toast(t('err'), 'err'); }
-    if (on) has.delete(col.id); else has.add(col.id);
-    paint();
-    toast(t(on ? 'collRemoved' : 'collSaved'), 'ok');
-    if (on && S.view === 'collection' && S.coll && S.coll.id === col.id) dropFromView(pid);
-  }
-
-  const topBtn = $('#to-top');
-  addEventListener('scroll', () => { topBtn.hidden = scrollY < 900; }, { passive: true });
-  topBtn.addEventListener('click', () => scrollTo({ top: 0, behavior: 'smooth' }));
-
-  async function openDeepLink() {
-    const id = DEEP.id;
-    DEEP.id = null;
-    if (!id || !/^[0-9a-f-]{36}$/i.test(id)) return;
-    const { data } = await sb.from('photos').select(colsNow()).eq('id', id).maybeSingle();
-    if (!data) return toast(t('notFound'), 'err');
-    DEEP.shown = true;
-    openViewer(data);
-  }
-
-  /* ------------------------------------------------------------------ */
-  /* البداية                                                             */
-  /* ------------------------------------------------------------------ */
-  applyLang();
-  if (LINK_ERROR) setTimeout(() => toast(t('linkErr'), 'err'), 400);
-  // أول تحميل بيحصل من onAuthStateChange (INITIAL_SESSION)
-})();
+  const C_COLS = 'id,body,create
