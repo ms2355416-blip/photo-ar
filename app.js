@@ -2,7 +2,9 @@
   'use strict';
 
   const C = window.PHOTO_AR_CONFIG;
-  const $ = (s, r = document) => r.querySelector(s);
+  // لو عنصر ناقص في index.html (رفع ملفات ناقصة مثلًا)، الموقع يكمل بدل ما يتوقف كله
+  const NOOP = new Proxy(function () {}, { get: (t, k) => (k === Symbol.toPrimitive ? () => '' : NOOP), apply: () => NOOP, set: () => true });
+  const $ = (s, r = document) => r.querySelector(s) || (console.warn('عنصر ناقص في index.html:', s), NOOP);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
   if (!window.supabase) {
@@ -1145,8 +1147,4 @@
   }
 
   /* ------------------------------------------------------------------ */
-  /* التعليقات                                                           */
-  /* ------------------------------------------------------------------ */
-  let cTok = 0;
-  const cTitle = (p) => t('comments') + (p.comment_count > 0 ? ' (' + p.comment_count + ')' : '');
-  const C_COLS = 'id,body,create
+  /* التعليقات
