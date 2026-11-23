@@ -49,13 +49,47 @@
   <button class="tab" data-view="review" type="button" hidden><span data-i18n="review"></span><i id="pending-count" class="count" hidden></i></button>
 </nav>
 
+<div class="filters" id="filters" hidden>
+  <select id="sort" aria-label="Sort">
+    <option value="new" data-i18n="sortNew"></option>
+    <option value="old" data-i18n="sortOld"></option>
+    <option value="liked" data-i18n="sortLiked"></option>
+  </select>
+  <div class="seg" id="orient" role="group">
+    <button type="button" data-o="all" class="on" data-i18n="oAll"></button>
+    <button type="button" data-o="p" data-i18n="oP"></button>
+    <button type="button" data-o="l" data-i18n="oL"></button>
+    <button type="button" data-o="s" data-i18n="oS"></button>
+  </div>
+</div>
+
 <main>
+  <section class="hero" id="hero" hidden>
+    <h1 data-i18n="heroTitle"></h1>
+    <p data-i18n="heroSub"></p>
+    <div class="hero-cta">
+      <button class="btn primary" id="hero-signup" type="button" data-i18n="signup"></button>
+      <button class="btn ghost" id="hero-login" type="button" data-i18n="login"></button>
+    </div>
+    <button class="hero-x" id="hero-x" type="button" aria-label="Close"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  </section>
   <div id="result-bar" class="result-bar" hidden></div>
   <div id="grid" class="grid"></div>
   <div id="empty" class="empty" hidden></div>
   <div id="sentinel" aria-hidden="true"></div>
-  <div id="loader" class="loader" hidden><span></span><span></span><span></span></div>
+  <div id="loader" class="loader" hidden><div class="skel-wrap"><i class="skel" style="height:220px"></i><i class="skel" style="height:300px"></i><i class="skel" style="height:180px"></i><i class="skel" style="height:260px"></i><i class="skel" style="height:340px"></i><i class="skel" style="height:200px"></i><i class="skel" style="height:280px"></i><i class="skel" style="height:240px"></i><i class="skel" style="height:320px"></i><i class="skel" style="height:210px"></i></div><span></span><span></span><span></span></div>
 </main>
+
+<footer class="foot">
+  <div class="foot-in">
+    <div><span class="logo-text">Photo <b>Ar</b></span><p data-i18n="footTag"></p></div>
+    <nav class="foot-links">
+      <button type="button" id="foot-faq" data-i18n="faq"></button>
+      <a id="foot-mail" data-i18n="contact"></a>
+    </nav>
+  </div>
+  <small class="foot-copy">© <span id="yr"></span> Photo Ar</small>
+</footer>
 
 <!-- ============ تسجيل الدخول ============ -->
 <div class="modal" id="auth-modal" hidden>
@@ -172,6 +206,14 @@
   </div>
 </div>
 
+<div class="modal" id="faq-modal" hidden>
+  <div class="sheet small-sheet faq-sheet" role="dialog" aria-modal="true" aria-labelledby="faq-title">
+    <button class="x" type="button" data-close aria-label="Close"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <h2 id="faq-title" data-i18n="faq"></h2>
+    <div class="faq-body" id="faq-body"></div>
+  </div>
+</div>
+
 <button id="to-top" class="to-top" type="button" hidden></button>
 <div id="toasts" class="toasts" aria-live="polite"></div>
 
@@ -183,7 +225,7 @@
 if (!window.__PA_OK) {
   var d = document.createElement('div');
   d.style.cssText = 'position:fixed;inset:auto 12px 12px 12px;z-index:99;background:#b3261e;color:#fff;padding:14px 16px;border-radius:14px;font:15px/1.6 sans-serif;text-align:center';
-  d.textContent = 'ملف app.js ناقص أو فيه خطأ. ارفعه تاني كملف كامل (مش نسخ ولصق). لازم يكون حجمه حوالي 66 كيلوبايت و1497 سطر.';
+  d.textContent = 'ملف app.js ناقص أو فيه خطأ. ارفعه تاني كملف كامل (مش نسخ ولصق). لازم يكون حجمه حوالي 72 كيلوبايت و1560 سطر.';
   document.body.appendChild(d);
 }
 </script>

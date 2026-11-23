@@ -81,7 +81,17 @@
       loginToComment: 'سجّل دخولك عشان تعلّق', delComment: 'حذف التعليق',
       searchImg: 'بحث بصورة', semNoExact: 'مفيش تطابق حرفي، دي أقرب الصور في المعنى لـ', semImage: 'صور قريبة من الصورة اللي اخترتها',
       aiIndex: 'فهرسة الصور بالذكاء الاصطناعي', aiAllDone: 'كل الصور متفهرسة', aiStart: 'بدأت الفهرسة، سيب الصفحة مفتوحة. العدد:', aiDone: 'خلصت الفهرسة:',
-      aiErr: 'البحث الذكي مش شغال دلوقتي'
+      aiErr: 'البحث الذكي مش شغال دلوقتي',
+      heroTitle: 'مكتبة صور أصحابك في مكان واحد', heroSub: 'اكتشف لقطات حلوة، احفظها في مجموعاتك، وشارك صورك مع أصحابك. كله ببلاش.',
+      sortNew: 'الأحدث', sortOld: 'الأقدم', sortLiked: 'الأكثر إعجابًا', oAll: 'الكل', oP: 'طولية', oL: 'عرضية', oS: 'مربعة',
+      faq: 'أسئلة شائعة', contact: 'تواصل معنا', footTag: 'موقع صور لأصحابنا: ارفع، واكتشف، واحفظ لقطاتك المفضلة.',
+      faq1q: 'هل الموقع مجاني؟', faq1a: 'أيوه، مجاني بالكامل ومفيش أي اشتراك.',
+      faq2q: 'ليه صورتي مش ظاهرة بعد الرفع؟', faq2a: 'كل صورة بتتراجع من الأدمن قبل ما تظهر للكل. تلاقيها في تبويب "صوري" بحالة قيد المراجعة.',
+      faq3q: 'إيه الصيغ والحجم المسموح؟', faq3a: 'JPG وPNG وWebP، وحتى 5 ميجا للصورة.',
+      faq4q: 'ازاي أحفظ صورة؟', faq4a: 'افتح الصورة واضغط "حفظ"، واختار مجموعة موجودة أو اعمل مجموعة جديدة عامة أو خاصة.',
+      faq5q: 'ازاي أنزّل الصورة بجودتها الأصلية؟', faq5a: 'من زرار "تنزيل" جوه الصورة، بينزّل النسخة الأصلية اللي اترفعت.',
+      faq6q: 'ازاي أمسح صورتي؟', faq6a: 'افتح صورتك واضغط "حذف". الحذف نهائي.',
+      faq7q: 'ازاي ألاقي صور شبه صورة معينة؟', faq7a: 'اضغط أيقونة الصورة جوه خانة البحث واختار صورة. الميزة دي لأعضاء الموقع المسجلين.'
     },
     en: {
       lang: 'عربي',
@@ -144,7 +154,17 @@
       loginToComment: 'Log in to comment', delComment: 'Delete comment',
       searchImg: 'Search by image', semNoExact: 'No exact match, closest photos in meaning to', semImage: 'Photos similar to your image',
       aiIndex: 'Index photos with AI', aiAllDone: 'All photos are indexed', aiStart: 'Indexing started, keep this page open. Count:', aiDone: 'Indexing done:',
-      aiErr: 'Smart search is not available right now'
+      aiErr: 'Smart search is not available right now',
+      heroTitle: "Your friends' photo library, in one place", heroSub: 'Discover great shots, save them to your collections, and share yours with friends. All free.',
+      sortNew: 'Newest', sortOld: 'Oldest', sortLiked: 'Most liked', oAll: 'All', oP: 'Portrait', oL: 'Landscape', oS: 'Square',
+      faq: 'FAQ', contact: 'Contact us', footTag: 'A photo site for friends: upload, discover and save your favorite shots.',
+      faq1q: 'Is the site free?', faq1a: 'Yes, completely free with no subscription.',
+      faq2q: "Why isn't my photo visible after uploading?", faq2a: 'Every photo is reviewed by the admin first. You can see it in "My photos" as pending.',
+      faq3q: 'Which formats and sizes are allowed?', faq3a: 'JPG, PNG and WebP, up to 5 MB per photo.',
+      faq4q: 'How do I save a photo?', faq4a: 'Open the photo and press Save, then pick a collection or create a new public or private one.',
+      faq5q: 'How do I download the original quality?', faq5a: 'Use the Download button in the viewer. It gives you the original file that was uploaded.',
+      faq6q: 'How do I delete my photo?', faq6a: 'Open your photo and press Delete. Deletion is permanent.',
+      faq7q: 'How can I find photos similar to one I have?', faq7a: 'Tap the image icon in the search box and choose a photo. This is for logged-in members.'
     }
   };
 
@@ -175,6 +195,8 @@
     ready: false, // بيبقى true بعد أول فحص للجلسة
     uid: null,
     liked: new Set(),
+    sort: 'new',
+    orient: 'all',
     sem: null,
     coll: null,
     gen: 0 // يلغي الطلبات القديمة لما المستخدم يغير البحث بسرعة
@@ -257,6 +279,10 @@
     $$('[data-i18n]').forEach((n) => { n.textContent = t(n.dataset.i18n); });
     $$('[data-i18n-ph]').forEach((n) => { n.placeholder = t(n.dataset.i18nPh); });
     $('#btn-lang').textContent = t('lang');
+    renderFaq();
+    paintOrient();
+    $('#foot-mail').href = 'mailto:' + C.ADMIN_EMAIL;
+    $('#yr').textContent = new Date().getFullYear();
     $('#btn-img-search').innerHTML = PA_ICONS.image || '';
     $('#btn-img-search').setAttribute('aria-label', t('searchImg'));
     $('#btn-img-search').title = t('searchImg');
@@ -468,7 +494,39 @@
     $('#q').blur();
   });
 
+  // الهيرو للزائر + شريط الفرز/الفلاتر
+  function renderChrome() {
+    $('#filters').hidden = !((S.view === 'home' || S.view === 'mine' || S.view === 'review') && !S.sem);
+    $('#hero').hidden = !(S.ready && !S.user && S.view === 'home' && !S.query && !S.sem && lsGet('pa_hero') !== '1');
+  }
+  function paintOrient() {
+    $('#grid').dataset.orient = S.orient;
+    $$('#orient button').forEach((b) => b.classList.toggle('on', b.dataset.o === S.orient));
+  }
+  function renderFaq() {
+    const box = $('#faq-body');
+    box.replaceChildren();
+    for (let i = 1; i <= 7; i++) {
+      const d = el('details', 'faq-item');
+      d.append(el('summary', '', t('faq' + i + 'q')), el('p', '', t('faq' + i + 'a')));
+      box.append(d);
+    }
+  }
+  $('#sort').addEventListener('change', (e) => { S.sort = e.target.value; loadPhotos(true); });
+  $('#orient').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    S.orient = b.dataset.o;
+    paintOrient();
+    requestAnimationFrame(checkSentinel);
+  });
+  $('#hero-signup').addEventListener('click', () => openAuth('signup'));
+  $('#hero-login').addEventListener('click', () => openAuth('login'));
+  $('#hero-x').addEventListener('click', () => { lsSet('pa_hero', '1'); renderChrome(); });
+  $('#foot-faq').addEventListener('click', () => openModal('#faq-modal'));
+
   function renderResultBar() {
+    renderChrome();
     const bar = $('#result-bar');
     if (S.sem) {
       bar.replaceChildren();
@@ -530,6 +588,8 @@
   function socialFail(err) {
     if (!SOCIAL || !/like_count|comment_count/i.test((err && err.message) || '')) return false;
     SOCIAL = false;
+    $('#sort option[value="liked"]').hidden = true;
+    if (S.sort === 'liked') { S.sort = 'new'; $('#sort').value = 'new'; }
     $('[data-view="collections"]').hidden = true;
     if (S.view === 'collections' || S.view === 'collection') {
       S.view = 'home'; S.coll = null;
@@ -610,9 +670,10 @@
       renderResultBar();
       return;
     }
-    let q = sb.from('photos').select(colsNow())
-      .order('created_at', { ascending: false })
-      .order('id', { ascending: false })
+    let q = sb.from('photos').select(colsNow());
+    if (S.sort === 'liked' && SOCIAL) q = q.order('like_count', { ascending: false });
+    const asc = S.sort === 'old';
+    q = q.order('created_at', { ascending: asc }).order('id', { ascending: asc })
       .range(S.page * size, S.page * size + size - 1);
 
     if (S.view === 'home') q = q.eq('status', 'approved');
@@ -720,6 +781,7 @@
   function cardEl(p) {
     const fig = el('figure', 'card');
     fig.dataset.id = p.id;
+    { const r = (p.width || 1) / (p.height || 1); fig.dataset.o = r < 0.92 ? 'p' : r > 1.08 ? 'l' : 's'; }
     fig.tabIndex = 0;
     fig.style.aspectRatio = (p.width || 1) + ' / ' + (p.height || 1);
 
@@ -1387,6 +1449,7 @@
     $('#grid').replaceChildren();
     $('#empty').hidden = true;
     $('#loader').hidden = false;
+    renderChrome();
     let rows = [];
     try {
       const r = await callAI({ action: 'search', ...payload });
